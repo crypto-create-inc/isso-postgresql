@@ -18,7 +18,7 @@ from isso.db_psql.preferences import Preferences
 
 
 class PSQL:
-    """DB-dependend wrapper around SQLite3.
+    """DB-dependend wrapper around PostgreSQL.
 
     Runs migration if `user_version` is older than `MAX_VERSION` and register
     a trigger for automated orphan removal.
@@ -31,20 +31,20 @@ class PSQL:
         self.path = os.path.expanduser(path)
         self.conf = conf
 
-        # rv = self.execute([
-        #     "SELECT name FROM sqlite_master"
-        #     "   WHERE type='table' AND name IN ('threads', 'comments', 'preferences')"]
-        # ).fetchone()
+        rv = self.execute([
+            "SELECT tablename AS name FROM pg_catalog.pg_tables"
+            "   WHERE tablename IN ('threads', 'comments', 'preferences')"]
+        ).fetchone()
 
         self.preferences = Preferences(self)
         self.threads = Threads(self)
         self.comments = Comments(self)
         self.guard = Guard(self)
 
-        # if rv is None:
-        #     self.execute("PRAGMA user_version = %i" % SQLite3.MAX_VERSION)
-        # else:
-        #     self.migrate(to=SQLite3.MAX_VERSION)
+        if rv is None:
+            self.set_version(PSQL.MAX_VERSION)
+        else:
+            self.migrate(to=PSQL.MAX_VERSION)
 
         self.execute([
             'DROP TRIGGER IF EXISTS remove_stale_threads',
@@ -78,7 +78,11 @@ class PSQL:
 
     @property
     def version(self):
-        return self.execute("PRAGMA user_version").fetchone()[0]
+        return self.execute("SELECT MAX(version) FROM versions").fetchone()[0]
+
+    def set_version(self, version):
+        self.execute('CREATE TABLE IF NOT EXISTS versions (version INTEGER)')
+        self.execute("INSERT INTO versions VALUES (%i)" % version)
 
     def migrate(self, to):
 
@@ -95,8 +99,8 @@ class PSQL:
             bf = buffer(Bloomfilter(iterable=["127.0.0.0"]).array)
 
             with psycopg2.connect(self.path) as con:
-                con.execute('UPDATE comments SET voters=?', (bf, ))
-                con.execute('PRAGMA user_version = 1')
+                con.cursor().execute('UPDATE comments SET voters=?', (bf, ))
+                con.cursor().execute('INSERT INTO versions VALUES (1)')
                 logger.info("%i rows changed", con.total_changes)
 
         # move [general] session-key to database
@@ -104,10 +108,10 @@ class PSQL:
 
             with psycopg2.connect(self.path) as con:
                 if self.conf.has_option("general", "session-key"):
-                    con.execute('UPDATE preferences SET value=? WHERE key=?', (
+                    con.cursor().execute('UPDATE preferences SET value=? WHERE key=?', (
                         self.conf.get("general", "session-key"), "session-key"))
 
-                con.execute('PRAGMA user_version = 2')
+                con.cursor().execute('INSERT INTO versions VALUES (2)')
                 logger.info("%i rows changed", con.total_changes)
 
         # limit max. nesting level to 1
@@ -116,7 +120,7 @@ class PSQL:
             first = lambda rv: list(map(operator.itemgetter(0), rv))
 
             with psycopg2.connect(self.path) as con:
-                top = first(con.execute("SELECT id FROM comments WHERE parent IS NULL").fetchall())
+                top = first(con.cursor().execute("SELECT id FROM comments WHERE parent IS NULL").fetchall())
                 flattened = defaultdict(set)
 
                 for id in top:
@@ -124,13 +128,13 @@ class PSQL:
                     ids = [id, ]
 
                     while ids:
-                        rv = first(con.execute("SELECT id FROM comments WHERE parent=?", (ids.pop(), )))
+                        rv = first(con.cursor().execute("SELECT id FROM comments WHERE parent=?", (ids.pop(), )))
                         ids.extend(rv)
                         flattened[id].update(set(rv))
 
                 for id in flattened.keys():
                     for n in flattened[id]:
-                        con.execute("UPDATE comments SET parent=? WHERE id=?", (id, n))
+                        con.cursor().execute("UPDATE comments SET parent=? WHERE id=?", (id, n))
 
-                con.execute('PRAGMA user_version = 3')
+                con.cursor().execute('INSERT INTO versions VALUES (3)')
                 logger.info("%i rows changed", con.total_changes)
