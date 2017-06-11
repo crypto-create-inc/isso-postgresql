@@ -30,7 +30,7 @@ class Comments:
             '    tid INTEGER REFERENCES threads(id), id SERIAL PRIMARY KEY, parent INTEGER,',
             '    created FLOAT NOT NULL, modified FLOAT, mode INTEGER, remote_addr VARCHAR,',
             '    text VARCHAR, author VARCHAR, email VARCHAR, website VARCHAR,',
-            '    likes INTEGER DEFAULT 0, dislikes INTEGER DEFAULT 0, voters VARCHAR NOT NULL);'])
+            '    likes INTEGER DEFAULT 0, dislikes INTEGER DEFAULT 0, voters bytea NOT NULL);'])
 
     def add(self, uri, c):
         """
