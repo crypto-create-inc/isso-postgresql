@@ -95,6 +95,7 @@ class Isso(object):
     def __init__(self, conf):
 
         self.conf = conf
+        db_type = conf.get('general', 'db-type')
         if db_type == 'sqlite':
             self.db = db.SQLite3(conf.get('general', 'dbpath'), conf)
         elif db_type == 'psql':
