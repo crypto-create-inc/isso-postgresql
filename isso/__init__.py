@@ -87,10 +87,10 @@ class Isso(object):
 
         self.conf = conf
         db_type = conf.get('general', 'db-type')
-        if db_type == 'sqlite':
-            self.db = db.SQLite3(conf.get('general', 'dbpath'), conf)
-        elif db_type == 'psql':
+        if db_type == 'psql':
             self.db = db_psql.PSQL(conf.get('general', 'dbpath'), conf)
+        else:
+            self.db = db.SQLite3(conf.get('general', 'dbpath'), conf)
         self.signer = URLSafeTimedSerializer(self.db.preferences.get("session-key"))
         self.markup = html.Markup(conf.section('markup'))
         self.hasher = hash.new(conf.section("hash"))
