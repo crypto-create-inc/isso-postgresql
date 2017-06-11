@@ -27,10 +27,10 @@ class Comments:
         self.db = db
         self.db.execute([
             'CREATE TABLE IF NOT EXISTS comments (',
-            '    tid REFERENCES threads(id), id INTEGER PRIMARY KEY, parent INTEGER,',
+            '    tid INTEGER REFERENCES threads(id), id SERIAL PRIMARY KEY, parent INTEGER,',
             '    created FLOAT NOT NULL, modified FLOAT, mode INTEGER, remote_addr VARCHAR,',
             '    text VARCHAR, author VARCHAR, email VARCHAR, website VARCHAR,',
-            '    likes INTEGER DEFAULT 0, dislikes INTEGER DEFAULT 0, voters BLOB NOT NULL);'])
+            '    likes INTEGER DEFAULT 0, dislikes INTEGER DEFAULT 0, voters VARCHAR NOT NULL);'])
 
     def add(self, uri, c):
         """
@@ -60,9 +60,10 @@ class Comments:
             uri)
         )
 
-        return dict(zip(Comments.fields, self.db.execute(
-            'SELECT *, MAX(c.id) FROM comments AS c INNER JOIN threads ON threads.uri = ?',
-            (uri, )).fetchone()))
+        return dict(zip(Comments.fields, self.db.execute([
+                'SELECT * FROM comments AS c INNER JOIN threads ON threads.uri = ?',
+                'ORDER BY c.id DESC limit 1'
+            ], (uri, )).fetchone()))
 
     def activate(self, id):
         """
@@ -194,7 +195,7 @@ class Comments:
         self.db.execute([
             'UPDATE comments SET',
             '    likes = likes + 1,' if upvote else 'dislikes = dislikes + 1,',
-            '    voters = ?'
+            '    voters = ? '
             'WHERE id=?;'], (buffer(bf.array), id))
 
         if upvote:

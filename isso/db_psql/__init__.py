@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-import sqlite3
+import psycopg2
 import logging
 import operator
 import os.path
@@ -17,7 +17,7 @@ from isso.db_psql.spam import Guard
 from isso.db_psql.preferences import Preferences
 
 
-class SQLite3:
+class PSQL:
     """DB-dependend wrapper around SQLite3.
 
     Runs migration if `user_version` is older than `MAX_VERSION` and register
@@ -31,35 +31,50 @@ class SQLite3:
         self.path = os.path.expanduser(path)
         self.conf = conf
 
-        rv = self.execute([
-            "SELECT name FROM sqlite_master"
-            "   WHERE type='table' AND name IN ('threads', 'comments', 'preferences')"]
-        ).fetchone()
+        # rv = self.execute([
+        #     "SELECT name FROM sqlite_master"
+        #     "   WHERE type='table' AND name IN ('threads', 'comments', 'preferences')"]
+        # ).fetchone()
 
         self.preferences = Preferences(self)
         self.threads = Threads(self)
         self.comments = Comments(self)
         self.guard = Guard(self)
 
-        if rv is None:
-            self.execute("PRAGMA user_version = %i" % SQLite3.MAX_VERSION)
-        else:
-            self.migrate(to=SQLite3.MAX_VERSION)
+        # if rv is None:
+        #     self.execute("PRAGMA user_version = %i" % SQLite3.MAX_VERSION)
+        # else:
+        #     self.migrate(to=SQLite3.MAX_VERSION)
 
         self.execute([
-            'CREATE TRIGGER IF NOT EXISTS remove_stale_threads',
-            'AFTER DELETE ON comments',
+            'DROP TRIGGER IF EXISTS remove_stale_threads',
+            'ON comments'])
+
+        self.execute([
+            'CREATE or REPLACE FUNCTION remove_stale_threads_func() RETURNS trigger AS $remove_stale_threads_func$',
             'BEGIN',
-            '    DELETE FROM threads WHERE id NOT IN (SELECT tid FROM comments);',
-            'END'])
+            '   DELETE FROM threads WHERE id NOT IN (SELECT tid FROM comments);',
+            '   RETURN NULL;',
+            'END',
+            '$remove_stale_threads_func$ LANGUAGE plpgsql'
+        ])
+
+        self.execute([
+            'CREATE TRIGGER remove_stale_threads',
+            'AFTER DELETE ON comments',
+            'EXECUTE PROCEDURE remove_stale_threads_func()'])
 
     def execute(self, sql, args=()):
 
         if isinstance(sql, (list, tuple)):
             sql = ' '.join(sql)
 
-        with sqlite3.connect(self.path) as con:
-            return con.execute(sql, args)
+        sql = sql.replace('?', '%s')
+
+        with psycopg2.connect(self.path) as con:
+            cursor = con.cursor()
+            cursor.execute(sql, args)
+            return cursor
 
     @property
     def version(self):
@@ -79,7 +94,7 @@ class SQLite3:
             from isso.utils import Bloomfilter
             bf = buffer(Bloomfilter(iterable=["127.0.0.0"]).array)
 
-            with sqlite3.connect(self.path) as con:
+            with psycopg2.connect(self.path) as con:
                 con.execute('UPDATE comments SET voters=?', (bf, ))
                 con.execute('PRAGMA user_version = 1')
                 logger.info("%i rows changed", con.total_changes)
@@ -87,7 +102,7 @@ class SQLite3:
         # move [general] session-key to database
         if self.version == 1:
 
-            with sqlite3.connect(self.path) as con:
+            with psycopg2.connect(self.path) as con:
                 if self.conf.has_option("general", "session-key"):
                     con.execute('UPDATE preferences SET value=? WHERE key=?', (
                         self.conf.get("general", "session-key"), "session-key"))
@@ -100,7 +115,7 @@ class SQLite3:
 
             first = lambda rv: list(map(operator.itemgetter(0), rv))
 
-            with sqlite3.connect(self.path) as con:
+            with psycopg2.connect(self.path) as con:
                 top = first(con.execute("SELECT id FROM comments WHERE parent IS NULL").fetchall())
                 flattened = defaultdict(set)
 

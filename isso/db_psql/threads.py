@@ -16,7 +16,7 @@ class Threads(object):
         self.db = db
         self.db.execute([
             'CREATE TABLE IF NOT EXISTS threads (',
-            '    id INTEGER PRIMARY KEY, uri VARCHAR(256) UNIQUE, title VARCHAR(256))'])
+            '    id SERIAL PRIMARY KEY, uri VARCHAR(256) UNIQUE, title VARCHAR(256))'])
 
     def __contains__(self, uri):
         return self.db.execute("SELECT title FROM threads WHERE uri=?", (uri, )) \
