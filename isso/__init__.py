@@ -66,7 +66,7 @@ from werkzeug.middleware.profiler import ProfilerMiddleware
 local = Local()
 local_manager = LocalManager([local])
 
-from isso import config, db_psql, migrate, wsgi, ext, views
+from isso import config, db, db_psql, migrate, wsgi, ext, views
 from isso.core import ThreadedMixin, ProcessMixin, uWSGIMixin
 from isso.wsgi import origin, urlsplit
 from isso.utils import http, JSONRequest, html, hash
@@ -95,7 +95,10 @@ class Isso(object):
     def __init__(self, conf):
 
         self.conf = conf
-        self.db = db_psql.PSQL(conf.get('general', 'dbpath'), conf)
+        if db_type == 'sqlite':
+            self.db = db.SQLite3(conf.get('general', 'dbpath'), conf)
+        elif db_type == 'psql':
+            self.db = db_psql.PSQL(conf.get('general', 'dbpath'), conf)
         self.signer = URLSafeTimedSerializer(
             self.db.preferences.get("session-key"))
         self.markup = html.Markup(conf.section('markup'))
