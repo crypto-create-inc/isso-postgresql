@@ -47,10 +47,6 @@ class PSQL:
             self.migrate(to=PSQL.MAX_VERSION)
 
         self.execute([
-            'DROP TRIGGER IF EXISTS remove_stale_threads',
-            'ON comments'])
-
-        self.execute([
             'CREATE or REPLACE FUNCTION remove_stale_threads_func() RETURNS trigger AS $remove_stale_threads_func$',
             'BEGIN',
             '   DELETE FROM threads WHERE id NOT IN (SELECT tid FROM comments);',
@@ -60,6 +56,7 @@ class PSQL:
         ])
 
         self.execute([
+            'DROP TRIGGER IF EXISTS remove_stale_threads ON comments;',
             'CREATE TRIGGER remove_stale_threads',
             'AFTER DELETE ON comments',
             'EXECUTE PROCEDURE remove_stale_threads_func()'])
