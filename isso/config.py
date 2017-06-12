@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import re
+import os
 import logging
 import datetime
 
@@ -91,6 +92,12 @@ class IssoParser(ConfigParser):
         * parse human-readable timedelta such as "15m" as "15 minutes"
         * handle indented lines as "lists"
     """
+
+    def get(self, section, option, **kw):
+        value = super(IssoParser, self).get(section, option, raw=True)
+        if len(value) > 0 and value[0] == '$':
+            return os.environ[value[1:]]
+        return value
 
     def getint(self, section, key):
         try:
