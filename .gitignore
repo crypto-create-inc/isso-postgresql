@@ -122,3 +122,5 @@ ENV/
 
 # VS Code project settings
 /.vscode
+
+/node_modules
