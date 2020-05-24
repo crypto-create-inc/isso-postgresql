@@ -1,11 +1,75 @@
 Changelog for Isso
 ==================
 
-0.10.7 (unreleased)
+0.12.3 (UNRELEASED)
 -------------------
 
-- Nothing changed yet.
+- New "flags" option in the [markdown] section to customize Misaka's Markdown
+  HTML rendering. By default, no flags are set.
 
+      [markup]
+      flags = skip-html, escape, hard-wrap
+
+  Check docs/configuration/server.rst for more details.
+
+0.12.2 (2019-01-21)
+-------------------
+
+- Revert use of labels instead of placeholders, since it breaks
+  mail notifications. #524
+
+0.12.1 (2019-01-19)
+-------------------
+
+- Revert fix for duplicate slashes, as it prevents isso from
+  starting in some cases. #523
+
+0.12.0 (2019-01-18)
+-------------------
+
+- Fix compatibility with new XML API.
+- Don't enable admin interface with default password by default.  #491
+- Add support and documentation for "generic" imports.
+- Remove potential duplicate slashes in URLs from
+  email links. #420
+- Add data-isso-reply-notifications to attributes in configuration.
+- Use default IP in imports if none is found. Fixes imports of some comments.
+- embed: fix feed link creation on older browsers.
+- Properly handle to field in mail notifications when using uWSGI spooler
+- css: fix vertical alignment of notification checkbox
+
+0.11.1 (2018-11-03)
+-------------------
+
+- Include pre-built minified JavaScript and CSS.
+
+0.11.0 (2018-11-03)
+-------------------
+
+Bugs & features:
+
+- Fix link in moderation mails if isso is setup on a sub-url (e.g. domain.tld/comments/)
+- Add reply notifications
+- Add admin interface
+- Add links highlighting in comments
+- Add apidoc
+- Add rc.d script for FreeBSD
+- Add the possibility to set CORS Origin through ISSO_CORS_ORIGIN environ variable
+- Add preview button
+- Add Atom feed at /feed?uri={thread-id}
+- Add optionnal gravatar support
+- Add nofollow noopener on links inside comments
+- Add Dockerfile
+- Upgraded to Misaka 2
+- Some tests/travis/documentation improvements and fixes + pep8
+
+Translations:
+
+- Fix Chinese translation & typo in CJK
+- Add Danish translation
+- Add Hungarian translation
+- Add Persian translation
+- Improvement on german translation
 
 0.10.6 (2016-09-22)
 -------------------

@@ -7,11 +7,13 @@ preferably in the script tag which embeds the JS:
 .. code-block:: html
 
     <script data-isso="/prefix/"
+            data-isso-id="thread-id"
             data-isso-css="true"
             data-isso-lang="ru"
             data-isso-reply-to-self="false"
             data-isso-require-author="false"
             data-isso-require-email="false"
+            data-isso-reply-notifications="false"
             data-isso-max-comments-top="10"
             data-isso-max-comments-nested="5"
             data-isso-reveal-on-click="5"
@@ -19,15 +21,25 @@ preferably in the script tag which embeds the JS:
             data-isso-avatar-bg="#f0f0f0"
             data-isso-avatar-fg="#9abf88 #5698c4 #e279a3 #9163b6 ..."
             data-isso-vote="true"
-            data-vote-levels=""
+            data-isso-vote-levels=""
+            data-isso-feed="false"
             src="/prefix/js/embed.js"></script>
 
 Furthermore you can override the automatic title detection inside
-the embed tag, e.g.:
+the embed tag, as well as the thread ID, e.g.:
 
 .. code-block:: html
 
-    <section id="isso-thread" data-title="Foo!"></section>
+    <section id="isso-thread" data-title="Foo!" data-isso-id="/path/to/resource"></section>
+
+Additionally, you can override any translation string for any language by adding
+a ``data-isso-`` attribute that is equal to the translation key (found `here`__) with
+``-text-[lang]`` appended to it. So, for example, if you want to override the
+english translation of the ``postbox-notification`` message, you could add:
+
+``data-isso-postbox-notification-text-en="Select to be notified of replies to your comment"``
+
+.. __: https://github.com/posativ/isso/blob/master/isso/js/app/i18n/en.js
 
 data-isso
 ---------
@@ -75,6 +87,11 @@ data-isso-require-email
 
 Set to `true` when spam guard is configured with `require-email = true`.
 
+data-isso-reply-notifications
+-----------------------------
+
+Set to `true` when reply notifications is configured with `reply-notifications = true`.
+
 data-isso-max-comments-top and data-isso-max-comments-nested
 ------------------------------------------------------------
 
@@ -106,6 +123,14 @@ scheme is based in `this color palette <http://colrd.com/palette/19308/>`_.
 Multiple colors must be separated by space. If you use less than eight colors
 and not a multiple of 2, the color distribution is not even.
 
+data-isso-gravatar
+------------------
+
+Uses gravatar images instead of generating svg images. You have to set
+"data-isso-avatar" to **false** when you want to use this. Otherwise
+both the gravatar and avatar svg image will show up. Please also set
+option "gravatar" to **true** in the server configuration...
+
 data-isso-vote
 --------------
 
@@ -125,13 +150,9 @@ For example, the value `"-5,5"` will cause each `isso-comment` to be given one o
 
 These classes can then be used to customize the appearance of comments (eg. put a star on popular comments)
 
-data-isso-id
-------------
+data-isso-feed
+--------------
 
-Set a custom thread id, defaults to current URI. This attribute needs
-to be used with the data-title attribute in order to work.
-If you use a comment counter, add this attribute to the link tag, too.
-
-.. code-block:: html
-
-    <section data-title="Yay!" data-isso-id="test.abc" id="isso-thread"></section>
+Enable or disable the addition of a link to the feed for the comment
+thread. The link will only be valid if the appropriate setting, in
+``[rss]`` section, is also enabled server-side.

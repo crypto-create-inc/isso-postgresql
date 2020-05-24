@@ -55,7 +55,7 @@ name
     not used otherwise.
 
 host
-    Your website(s). If Isso is unable to connect to at least on site, you'll
+    Your website(s). If Isso is unable to connect to at least one site, you'll
     get a warning during startup and comments are most likely non-functional.
 
     You'll need at least one host/website to run Isso. This is due to security
@@ -88,8 +88,32 @@ notify
         Send notifications via SMTP on new comments with activation (if
         moderated) and deletion links.
 
+reply-notifications
+    Allow users to request E-mail notifications for replies to their post.
+
+    It is highly recommended to also turn on moderation when enabling this
+    setting, as Isso can otherwise be easily exploited for sending spam.
+
+    Do not forget to configure the client accordingly.
+
 log-file
     Log console messages to file instead of standard out.
+
+gravatar
+    When set to ``true`` this will add the property "gravatar_image"
+    containing the link to a gravatar image to every comment. If a comment
+    does not contain an email address, gravatar will render a random icon.
+    This is only true when using the default value for "gravatar-url"
+    which contains the query string param ``d=identicon`` ...
+
+gravatar-url
+    Url for gravatar images. The "{}" is where the email hash will be placed.
+    Defaults to "https://www.gravatar.com/avatar/{}?d=identicon"
+
+latest-enabled
+    If True it will enable the ``/latest`` endpoint. Optional, defaults 
+    to False.
+
 
 
 .. _CORS: https://developer.mozilla.org/en/docs/HTTP/Access_control_CORS
@@ -104,12 +128,20 @@ Enable moderation queue and handling of comments still in moderation queue
 
     [moderation]
     enabled = false
+    approve-if-email-previously-approved = false
     purge-after = 30d
 
 enabled
     enable comment moderation queue. This option only affects new comments.
-    Comments in modertion queue are not visible to other users until you
+    Comments in moderation queue are not visible to other users until you
     activate them.
+
+approve-if-email-previously-approved
+    automatically approve comments by an email address if that address has
+    had a comment approved within the last 6 months. No ownership verification
+    is done on the entered email address. This means that if someone is able
+    to guess correctly the email address used by a previously approved author,
+    they will be able to have their new comment auto-approved.
 
 purge-after
     remove unprocessed comments in moderation queue after given time.
@@ -144,6 +176,12 @@ listen
 
     Does not apply for `uWSGI`.
 
+public-endpoint
+    public URL that Isso is accessed from by end users. Should always be
+    a http:// or https:// absolute address. If left blank, automatic
+    detection is attempted. Normally only needs to be specified if
+    different than the `listen` setting.
+
 reload
     reload application, when the source code has changed. Useful for
     development. Only works with the internal webserver.
@@ -151,6 +189,13 @@ reload
 profile
     show 10 most time consuming function in Isso after each request. Do
     not use in production.
+
+trusted-proxies
+    an optional list of reverse proxies IPs behind which you have deployed
+    your Isso web service (e.g. `127.0.0.1`).
+    This allow for proper remote address resolution based on a
+    `X-Forwarded-For` HTTP header, which is important for the mechanism
+    forbiding several comment votes coming from the same subnet.
 
 .. _configure-smtp:
 
@@ -236,19 +281,19 @@ reply-to-self
     the comment. After the editing timeframe is gone, commenters can reply to
     their own comments anyways.
 
-    Do not forget to configure the client.
+    Do not forget to configure the `client <client>`_ accordingly
 
 require-author
     force commenters to enter a value into the author field. No validation is
     performed on the provided value.
 
-    Do not forget to configure the client accordingly.
+    Do not forget to configure the `client <client>`_ accordingly.
 
 require-email
     force commenters to enter a value into the email field. No validation is
     performed on the provided value.
 
-    Do not forget to configure the client.
+    Do not forget to configure the `client <client>`_ accordingly.
 
 Markup
 ------
@@ -260,12 +305,20 @@ supported, but new languages are relatively easy to add.
 
     [markup]
     options = strikethrough, superscript, autolink
+    flags = skip-html, escape, hard-wrap
     allowed-elements =
     allowed-attributes =
 
 options
-    `Misaka-specific Markdown extensions <http://misaka.61924.nl/api/>`_, all
-    flags starting with `EXT_` can be used there, separated by comma.
+    `Misaka-specific Markdown extensions <https://misaka.61924.nl/#api>`_, all
+    extension flags can be used there, separated by comma, either by their name
+    or as `EXT_`_.
+
+flags
+    `Misaka-specific HTML rendering flags
+    <https://misaka.61924.nl/#html-render-flags>`_, all html rendering flags
+    can be used here, separated by comma, either by their name or as `HTML_`_.
+    Per Misaka's defaults, no flags are set.
 
 allowed-elements
     Additional HTML tags to allow in the generated output, comma-separated. By
@@ -308,6 +361,45 @@ algorithm
     Arguments have to be in that order, but can be reduced to `pbkdf2:4096`
     for example to override the iterations only.
 
+.. _configure-rss:
+
+RSS
+---
+
+Isso can provide an Atom feed for each comment thread. Users can use
+them to subscribe to comments and be notified of changes. Atom feeds
+are enabled as soon as there is a base URL defined in this section.
+
+.. code-block:: ini
+
+    [rss]
+    base =
+    limit = 100
+
+base
+    base URL to use to build complete URI to pages (by appending the URI from Isso)
+
+limit
+    number of most recent comments to return for a thread
+
+Admin
+-----
+
+Isso has an optional web administration interface that can be used to moderate
+comments. The interface is available under ``/admin`` on your isso URL.
+
+.. code-block:: ini
+
+   [admin]
+   enabled = true
+   password = secret
+
+enabled
+   whether to enable the admin interface
+
+password
+   the plain text password to use for logging into the administration interface
+
 Appendum
 --------
 
@@ -320,3 +412,18 @@ Timedelta
 
     You can add different types: `1m30s` equals to 90 seconds, `3h45m12s`
     equals to 3 hours, 45 minutes and 12 seconds (12512 seconds).
+
+Environment variables
+---------------------
+
+.. _environment-variables:
+
+Isso also support configuration through some environment variables:
+
+ISSO_CORS_ORIGIN
+    By default, `isso` will use the `Host` or else the `Referrer` HTTP header
+    of the request to defines a CORS `Access-Control-Allow-Origin` HTTP header
+    in the response.
+    This environent variable allows you to define a broader fixed value,
+    in order for example to share a single Isso instance among serveral of your
+    subdomains : `ISSO_CORS_ORIGIN=*.example.test`

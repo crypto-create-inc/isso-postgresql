@@ -1,10 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
-
+import unittest
 
 from isso import wsgi
 
@@ -14,10 +10,10 @@ class TestWSGIUtilities(unittest.TestCase):
     def test_urlsplit(self):
 
         examples = [
-            ("http://example.tld/",  ('example.tld', 80, False)),
+            ("http://example.tld/", ('example.tld', 80, False)),
             ("https://example.tld/", ('example.tld', 443, True)),
-            ("example.tld",          ('example.tld', 80, False)),
-            ("example.tld:42",       ('example.tld', 42, False)),
+            ("example.tld", ('example.tld', 80, False)),
+            ("example.tld:42", ('example.tld', 42, False)),
             ("https://example.tld:80/", ('example.tld', 80, True))]
 
         for (hostname, result) in examples:
@@ -27,7 +23,7 @@ class TestWSGIUtilities(unittest.TestCase):
 
         examples = [
             (("example.tld", 80, False), "http://example.tld"),
-            (("example.tld", 42, True),  "https://example.tld:42"),
+            (("example.tld", 42, True), "https://example.tld:42"),
             (("example.tld", 443, True), "https://example.tld")]
 
         for (split, result) in examples:
