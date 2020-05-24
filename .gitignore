@@ -9,6 +9,7 @@
 .Python
 .sass-cache
 .vagrant
+pyvenv.cfg
 
 /bin
 /include

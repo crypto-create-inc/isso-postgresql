@@ -107,7 +107,7 @@ define(["app/config", "app/i18n/bg", "app/i18n/cs", "app/i18n/da",
         sv: sv,
         nl: nl,
         vi: vi,
-        zh: zh_CN,
+        zh: zh_TW,
         zh_CN: zh_CN,
         zh_TW: zh_TW
     };
