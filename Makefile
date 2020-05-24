@@ -1,3 +1,5 @@
+# INSTALLATION: pip install sphinx && npm install --global node-sass
+
 ISSO_JS_SRC := $(shell find isso/js/app -type f) \
 	       $(shell ls isso/js/*.js | grep -vE "(min|dev)") \
 	       isso/js/lib/requirejs-jade/jade.js
@@ -27,16 +29,15 @@ DOCS_HTML_DST := docs/_build/html
 
 RJS = r.js
 
+SASS = node-sass
+
 all: man js site
 
 init:
 	(cd isso/js; bower --allow-root install almond requirejs requirejs-text jade)
 
-check:
-	@echo "Python 2.x"
-	-@python2 -m pyflakes $(ISSO_PY_SRC)
-	@echo "Python 3.x"
-	-@python3 -m pyflakes $(ISSO_PY_SRC)
+flakes:
+	flake8 . --count --max-line-length=127 --show-source --statistics
 
 isso/js/%.min.js: $(ISSO_JS_SRC) $(ISSO_CSS)
 	$(RJS) -o isso/js/build.$*.js out=$@
@@ -53,7 +54,7 @@ man: $(DOCS_RST_SRC)
 	mv man/isso.conf.5 man/man5/isso.conf.5
 
 ${DOCS_CSS_DST}: $(DOCS_CSS_SRC) $(DOCS_CSS_DEP)
-	scss --no-cache $(DOCS_CSS_SRC) $@
+	$(SASS) --no-cache $(DOCS_CSS_SRC) $@
 
 ${DOCS_HTML_DST}: $(DOCS_RST_SRC) $(DOCS_CSS_DST)
 	sphinx-build -b dirhtml docs/ $@
@@ -64,7 +65,7 @@ coverage: $(ISSO_PY_SRC)
 	nosetests --with-doctest --with-coverage --cover-package=isso --cover-html isso/
 
 test: $($ISSO_PY_SRC)
-	python setup.py nosetests
+	python3 setup.py nosetests
 
 clean:
 	rm -f $(DOCS_MAN_DST) $(DOCS_CSS_DST) $(ISSO_JS_DST)
