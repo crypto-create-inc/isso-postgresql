@@ -1,10 +1,16 @@
 Isso – a commenting server similar to Disqus
 ============================================
 
-Isso – *Ich schrei sonst* – is a lightweight commenting server written in
-Python and JavaScript. It aims to be a drop-in replacement for
-[Disqus](http://disqus.com).
+Postgresql support added to original Isso.
 
-![Isso in Action](http://posativ.org/~tmp/isso-sample.png)
+## Installation
 
-See [posativ.org/isso](http://posativ.org/isso/) for more details.
+Please refer to the origianl Isso document.
+
+## Postgresql Setting
+In `isso/defaults.ini`, set:
+
+```
+db-type = sqlite
+dbpath = postgres://user:password@localhost:5432/db (Replace with your postgresql path)
+```
