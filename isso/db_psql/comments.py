@@ -1,9 +1,15 @@
 # -*- encoding: utf-8 -*-
 
+import logging
 import time
 
 from isso.utils import Bloomfilter
-from isso.compat import buffer
+
+
+logger = logging.getLogger("isso")
+
+
+MAX_LIKES_AND_DISLIKES = 142
 
 
 class Comments:
@@ -19,8 +25,11 @@ class Comments:
     The tuple (tid, id) is unique and thus primary key.
     """
 
-    fields = ['tid', 'id', 'parent', 'created', 'modified', 'mode', 'remote_addr',
-              'text', 'author', 'email', 'website', 'likes', 'dislikes', 'voters']
+    fields = ['tid', 'id', 'parent', 'created', 'modified',
+              'mode',  # status of the comment 1 = valid, 2 = pending,
+                       # 4 = soft-deleted (cannot hard delete because of replies)
+              'remote_addr', 'text', 'author', 'email', 'website',
+              'likes', 'dislikes', 'voters', 'notification']
 
     def __init__(self, db):
 
@@ -30,7 +39,12 @@ class Comments:
             '    tid INTEGER REFERENCES threads(id), id SERIAL PRIMARY KEY, parent INTEGER,',
             '    created FLOAT NOT NULL, modified FLOAT, mode INTEGER, remote_addr VARCHAR,',
             '    text VARCHAR, author VARCHAR, email VARCHAR, website VARCHAR,',
-            '    likes INTEGER DEFAULT 0, dislikes INTEGER DEFAULT 0, voters bytea NOT NULL);'])
+            '    likes INTEGER DEFAULT 0, dislikes INTEGER DEFAULT 0, voters bytea NOT NULL,',
+            '    notification INTEGER DEFAULT 0);'])
+        try:
+            self.db.execute(['ALTER TABLE comments ADD COLUMN notification INTEGER DEFAULT 0;'])
+        except Exception:
+            pass
 
     def add(self, uri, c):
         """
@@ -47,23 +61,22 @@ class Comments:
             'INSERT INTO comments (',
             '    tid, parent,'
             '    created, modified, mode, remote_addr,',
-            '    text, author, email, website, voters )',
+            '    text, author, email, website, voters, notification)',
             'SELECT',
             '    threads.id, ?,',
             '    ?, ?, ?, ?,',
-            '    ?, ?, ?, ?, ?',
+            '    ?, ?, ?, ?, ?, ?',
             'FROM threads WHERE threads.uri = ?;'], (
             c.get('parent'),
             c.get('created') or time.time(), None, c["mode"], c['remote_addr'],
-            c['text'], c.get('author'), c.get('email'), c.get('website'), buffer(
-                Bloomfilter(iterable=[c['remote_addr']]).array),
+            c['text'], c.get('author'), c.get('email'), c.get('website'), memoryview(
+                Bloomfilter(iterable=[c['remote_addr']]).array), c.get('notification'),
             uri)
         )
 
-        return dict(zip(Comments.fields, self.db.execute([
-                'SELECT * FROM comments AS c INNER JOIN threads ON threads.uri = ?',
-                'ORDER BY c.id DESC limit 1'
-            ], (uri, )).fetchone()))
+        return dict(zip(Comments.fields, self.db.execute(
+            'SELECT *, MAX(c.id) FROM comments AS c INNER JOIN threads ON threads.uri = ?',
+            (uri, )).fetchone()))
 
     def activate(self, id):
         """
@@ -74,6 +87,34 @@ class Comments:
             '    mode=1',
             'WHERE id=? AND mode=2'], (id, ))
 
+    def is_previously_approved_author(self, email):
+        """
+        Search for previously activated comments with this author email.
+        """
+
+        # if the user has not entered email, email is None, in which case we can't check if they have previous comments
+        if email is not None:
+            # search for any activated comments within the last 6 months by email
+            # this SQL should be one of the fastest ways of doing this check
+            # https://stackoverflow.com/questions/18114458/fastest-way-to-determine-if-record-exists
+            rv = self.db.execute([
+                'SELECT CASE WHEN EXISTS(',
+                '    select * from comments where email=? and mode=1 and ',
+                '    created > strftime("%s", DATETIME("now", "-6 month"))',
+                ') THEN 1 ELSE 0 END;'], (email,)).fetchone()
+            return rv[0] == 1
+        else:
+            return False
+
+    def unsubscribe(self, email, id):
+        """
+        Turn off email notifications for replies to this comment.
+        """
+        self.db.execute([
+            'UPDATE comments SET',
+            '    notification=0',
+            'WHERE email=? AND (id=? OR parent=?);'], (email, id, id))
+
     def update(self, id, data):
         """
         Update comment :param:`id` with values from :param:`data` and return
@@ -81,7 +122,7 @@ class Comments:
         """
         self.db.execute([
             'UPDATE comments SET',
-                ','.join(key + '=' + '?' for key in data),
+            ','.join(key + '=' + '?' for key in data),
             'WHERE id=?;'],
             list(data.values()) + [id])
 
@@ -92,19 +133,78 @@ class Comments:
         Search for comment :param:`id` and return a mapping of :attr:`fields`
         and values.
         """
-        rv = self.db.execute('SELECT * FROM comments WHERE id=?', (id, )).fetchone()
+        rv = self.db.execute(
+            'SELECT * FROM comments WHERE id=?', (id, )).fetchone()
         if rv:
             return dict(zip(Comments.fields, rv))
 
         return None
 
-    def fetch(self, uri, mode=5, after=0, parent='any', order_by='id', limit=None):
+    def count_modes(self):
+        """
+        Return comment mode counts for admin
+        """
+        comment_count = self.db.execute(
+            'SELECT mode, COUNT(comments.id) FROM comments '
+            'GROUP BY comments.mode').fetchall()
+        return dict(comment_count)
+
+    def fetchall(self, mode=5, after=0, parent='any', order_by='id',
+                 limit=100, page=0, asc=1):
+        """
+        Return comments for admin with :param:`mode`.
+        """
+        fields_comments = ['tid', 'id', 'parent', 'created', 'modified',
+                           'mode', 'remote_addr', 'text', 'author',
+                           'email', 'website', 'likes', 'dislikes']
+        fields_threads = ['uri', 'title']
+        sql_comments_fields = ', '.join(['comments.' + f
+                                         for f in fields_comments])
+        sql_threads_fields = ', '.join(['threads.' + f
+                                        for f in fields_threads])
+        sql = ['SELECT ' + sql_comments_fields + ', ' + sql_threads_fields + ' '
+               'FROM comments INNER JOIN threads '
+               'ON comments.tid=threads.id '
+               'WHERE comments.mode = ? ']
+        sql_args = [mode]
+
+        if parent != 'any':
+            if parent is None:
+                sql.append('AND comments.parent IS NULL')
+            else:
+                sql.append('AND comments.parent=?')
+                sql_args.append(parent)
+
+        # custom sanitization
+        if order_by not in ['id', 'created', 'modified', 'likes', 'dislikes', 'tid']:
+            sql.append('ORDER BY ')
+            sql.append("comments.created")
+            if not asc:
+                sql.append(' DESC')
+        else:
+            sql.append('ORDER BY ')
+            sql.append('comments.' + order_by)
+            if not asc:
+                sql.append(' DESC')
+            sql.append(", comments.created")
+
+        if limit:
+            sql.append('LIMIT ?,?')
+            sql_args.append(page * limit)
+            sql_args.append(limit)
+
+        rv = self.db.execute(sql, sql_args).fetchall()
+        for item in rv:
+            yield dict(zip(fields_comments + fields_threads, item))
+
+    def fetch(self, uri, mode=5, after=0, parent='any',
+              order_by='id', asc=1, limit=None):
         """
         Return comments for :param:`uri` with :param:`mode`.
         """
-        sql = [ 'SELECT comments.* FROM comments INNER JOIN threads ON',
-                '    threads.uri=? AND comments.tid=threads.id AND (? | comments.mode) = ?',
-                '    AND comments.created>?']
+        sql = ['SELECT comments.* FROM comments INNER JOIN threads ON',
+               '    threads.uri=? AND comments.tid=threads.id AND (? | comments.mode) = ?',
+               '    AND comments.created>?']
 
         sql_args = [uri, mode, mode, after]
 
@@ -120,7 +220,8 @@ class Comments:
             order_by = 'id'
         sql.append('ORDER BY ')
         sql.append(order_by)
-        sql.append(' ASC')
+        if not asc:
+            sql.append(' DESC')
 
         if limit:
             sql.append('LIMIT ?')
@@ -156,7 +257,8 @@ class Comments:
         In the second case this comment can be safely removed without any side
         effects."""
 
-        refs = self.db.execute('SELECT * FROM comments WHERE parent=?', (id, )).fetchone()
+        refs = self.db.execute(
+            'SELECT * FROM comments WHERE parent=?', (id, )).fetchone()
 
         if refs is None:
             self.db.execute('DELETE FROM comments WHERE id=?', (id, ))
@@ -166,7 +268,8 @@ class Comments:
         self.db.execute('UPDATE comments SET text=? WHERE id=?', ('', id))
         self.db.execute('UPDATE comments SET mode=? WHERE id=?', (4, id))
         for field in ('author', 'website'):
-            self.db.execute('UPDATE comments SET %s=? WHERE id=?' % field, (None, id))
+            self.db.execute('UPDATE comments SET %s=? WHERE id=?' %
+                            field, (None, id))
 
         self._remove_stale()
         return self.get(id)
@@ -183,20 +286,25 @@ class Comments:
         if rv is None:
             return None
 
+        operation_name = 'Upvote' if upvote else 'Downvote'
         likes, dislikes, voters = rv
-        if likes + dislikes >= 142:
-            return {'likes': likes, 'dislikes': dislikes}
+        if likes + dislikes >= MAX_LIKES_AND_DISLIKES:
+            message = '{} denied due to a "likes + dislikes" total too high ({} >= {})'.format(operation_name, likes + dislikes, MAX_LIKES_AND_DISLIKES)
+            logger.debug('Comments.vote(id=%s): %s', id, message)
+            return {'likes': likes, 'dislikes': dislikes, 'message': message}
 
         bf = Bloomfilter(bytearray(voters), likes + dislikes)
         if remote_addr in bf:
-            return {'likes': likes, 'dislikes': dislikes}
+            message = '{} denied because a vote has already been registered for this remote address: {}'.format(operation_name, remote_addr)
+            logger.debug('Comments.vote(id=%s): %s', id, message)
+            return {'likes': likes, 'dislikes': dislikes, 'message': message}
 
         bf.add(remote_addr)
         self.db.execute([
             'UPDATE comments SET',
             '    likes = likes + 1,' if upvote else 'dislikes = dislikes + 1,',
-            '    voters = ? '
-            'WHERE id=?;'], (buffer(bf.array), id))
+            '    voters = ?'
+            'WHERE id=?;'], (memoryview(bf.array), id))
 
         if upvote:
             return {'likes': likes + 1, 'dislikes': dislikes}

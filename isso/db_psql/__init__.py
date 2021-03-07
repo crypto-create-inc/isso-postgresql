@@ -9,8 +9,6 @@ from collections import defaultdict
 
 logger = logging.getLogger("isso")
 
-from isso.compat import buffer
-
 from isso.db_psql.comments import Comments
 from isso.db_psql.threads import Threads
 from isso.db_psql.spam import Guard
