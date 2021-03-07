@@ -26,6 +26,8 @@
 /docs/_build
 /docs/_static/css/site.css
 
+node_modules/
+
 /pip-selfcheck.json
 
 # github/gitignore
@@ -123,4 +125,4 @@ ENV/
 # VS Code project settings
 /.vscode
 
-/node_modules
+.mypy_cache

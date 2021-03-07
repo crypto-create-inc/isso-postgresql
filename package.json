@@ -1,17 +1,16 @@
 {
   "name": "isso-heroku",
-  "version": "1.0.0",
-  "engines": {
-    "node": "7.3.0"
-  },
-  "description": "Isso – a commenting server similar to Disqus ============================================",
+  "description": "lightweight Disquis alternative",
+  "license": "MIT",
   "scripts": {
     "postinstall": "make init && make js"
   },
-  "dependencies": {
-    "bower": "^1.8.0",
-    "jade": "^1.11.0",
-    "requirejs": "^2.3.3",
-    "uglify-js": "^3.0.15"
+  "repository": "github:posativ/isso",
+  "dependencies": {},
+  "devDependencies": {
+    "almond": "^0.3.3",
+    "jade": "^1.5.0",
+    "requirejs": "^2.3.6",
+    "requirejs-text": "^2.0.15"
   }
 }

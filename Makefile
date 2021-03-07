@@ -1,4 +1,7 @@
-# INSTALLATION: pip install sphinx && npm install --global node-sass
+# INSTALLATION:
+# pip install sphinx
+# npm install -g requirejs uglify-js jade
+# apt install sassc
 
 ISSO_JS_SRC := $(shell find isso/js/app -type f) \
 	       $(shell ls isso/js/*.js | grep -vE "(min|dev)") \
@@ -27,14 +30,14 @@ DOCS_MAN_DST := man/man1/isso.1 man/man5/isso.conf.5
 
 DOCS_HTML_DST := docs/_build/html
 
-RJS = r.js
+RJS = npx --no-install r.js
 
-SASS = node-sass
+SASS = sassc
 
 all: man js site
 
 init:
-	(cd isso/js; bower --allow-root install almond requirejs requirejs-text jade)
+	npm install
 
 flakes:
 	flake8 . --count --max-line-length=127 --show-source --statistics
@@ -54,7 +57,7 @@ man: $(DOCS_RST_SRC)
 	mv man/isso.conf.5 man/man5/isso.conf.5
 
 ${DOCS_CSS_DST}: $(DOCS_CSS_SRC) $(DOCS_CSS_DEP)
-	$(SASS) --no-cache $(DOCS_CSS_SRC) $@
+	$(SASS) $(DOCS_CSS_SRC) $@
 
 ${DOCS_HTML_DST}: $(DOCS_RST_SRC) $(DOCS_CSS_DST)
 	sphinx-build -b dirhtml docs/ $@

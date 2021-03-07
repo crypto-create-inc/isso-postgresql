@@ -12,15 +12,10 @@ try:
 except ImportError:
     uwsgi = None
 
-from isso.compat import PY2K
+import _thread as thread
 
-if PY2K:
-    import thread
-else:
-    import _thread as thread
-
-from flask_caching.backends.null import NullCache
-from flask_caching.backends.simple import SimpleCache
+from flask_caching.backends.nullcache import NullCache
+from flask_caching.backends.simplecache import SimpleCache
 
 logger = logging.getLogger("isso")
 
