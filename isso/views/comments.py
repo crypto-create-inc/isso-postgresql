@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+from configparser import NoOptionError
 import collections
 import re
 import time
@@ -19,8 +20,6 @@ from werkzeug.routing import Rule
 from werkzeug.wrappers import Response
 from werkzeug.exceptions import BadRequest, Forbidden, NotFound
 
-from isso.compat import text_type as str
-
 from isso import utils, local
 from isso.utils import (http, parse,
                         JSONResponse as JSON, XMLResponse as XML,
@@ -33,18 +32,9 @@ try:
     from cgi import escape
 except ImportError:
     from html import escape
-try:
-    from urlparse import urlparse
-except ImportError:
-    from urllib.parse import urlparse
-try:
-    from urllib import unquote
-except ImportError:
-    from urllib.parse import unquote
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import BytesIO as StringIO
+from urllib.parse import urlparse
+from urllib.parse import unquote
+from io import BytesIO as StringIO
 
 
 # from Django appearently, looks good to me *duck*
@@ -139,8 +129,14 @@ class API(object):
         self.conf = isso.conf.section("general")
         self.moderated = isso.conf.getboolean("moderation", "enabled")
         # this is similar to the wordpress setting "Comment author must have a previously approved comment"
-        self.approve_if_email_previously_approved = isso.conf.getboolean("moderation", "approve-if-email-previously-approved")
-        self.trusted_proxies = list(isso.conf.getiter("server", "trusted-proxies"))
+        try:
+            self.approve_if_email_previously_approved = isso.conf.getboolean("moderation", "approve-if-email-previously-approved")
+        except NoOptionError:
+            self.approve_if_email_previously_approved = False
+        try:
+            self.trusted_proxies = list(isso.conf.getiter("server", "trusted-proxies"))
+        except NoOptionError:
+            self.trusted_proxies = []
 
         self.guard = isso.db.guard
         self.threads = isso.db.threads

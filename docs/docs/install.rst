@@ -164,11 +164,13 @@ Install from Source
 If you want to hack on Isso or track down issues, there's an alternate
 way to set up Isso. It requires a lot more dependencies and effort:
 
-- Python 2.7 or 3.4+ (+ devel headers)
+- Python 3.5+ (+ devel headers)
 - Virtualenv
 - SQLite 3.3.8 or later
 - a working C compiler
-- Node.js, `NPM <https://npmjs.org/>`__ and `Bower <http://bower.io/>`__
+- Node.js, `NPM <https://npmjs.org/>`__ and `Bower <http://bower.io/>`__ - *for frontend*
+- `sassc <https://github.com/sass/sassc>`_ for compiling
+  `.scss <https://sass-lang.com/>`_ - *for docs*
 
 Get a fresh copy of Isso:
 
@@ -204,12 +206,17 @@ Integration without optimization:
     <script src="/js/config.js"></script>
     <script data-main="/js/embed" src="/js/components/requirejs/require.js"></script>
 
-Optimization:
+Optimization - generate ``embed.(min|dev).js``:
 
 .. code-block:: sh
 
-    ~> npm install -g requirejs uglify-js jade
     ~> make js
+
+Generate docs:
+
+.. code-block:: sh
+
+    ~> make site
 
 .. _init-scripts:
 
@@ -220,8 +227,8 @@ Init scripts to run Isso as a service (check your distribution's documentation
 for your init-system; e.g. Debian uses SysVinit, Fedora uses systemd) if you
 don't use FastCGi or uWSGI:
 
--  systemd (Isso + Gunicorn): https://github.com/jgraichen/debian-isso/blob/master/debian/isso.service
--  SysVinit (Isso + Gunicorn): https://github.com/jgraichen/debian-isso/blob/master/debian/isso.init
+-  systemd (Isso + Gunicorn): https://salsa.debian.org/jelmer/isso/-/blob/master/debian/isso.service
+-  SysVinit (Isso + Gunicorn): https://salsa.debian.org/jelmer/isso/-/blob/master/debian/isso.init
 -  OpenBSD: https://gist.github.com/noqqe/7397719
 -  FreeBSD: https://gist.github.com/ckoepp/52f6f0262de04cee1b88ef4a441e276d
 -  Supervisor: https://github.com/posativ/isso/issues/47

@@ -26,6 +26,8 @@
 /docs/_build
 /docs/_static/css/site.css
 
+node_modules/
+
 /pip-selfcheck.json
 
 # github/gitignore
@@ -119,8 +121,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+.mypy_cache
 
 # VS Code project settings
 /.vscode
-
-/node_modules

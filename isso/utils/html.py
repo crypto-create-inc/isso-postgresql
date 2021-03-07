@@ -1,14 +1,12 @@
 # -*- encoding: utf-8 -*-
 
 from __future__ import unicode_literals
+import html
 
 import bleach
 import misaka
 
-try:
-    from backports.configparser import NoOptionError
-except ImportError:
-    from configparser import NoOptionError
+from configparser import NoOptionError
 
 
 class Sanitizer(object):
@@ -77,8 +75,8 @@ class Unofficial(misaka.HtmlRenderer):
     """
 
     def blockcode(self, text, lang):
-        lang = ' class="{0}"'.format(lang) if lang else ''
-        return "<pre><code{1}>{0}</code></pre>\n".format(text, lang)
+        lang = ' class="{0}"'.format(html.escape(lang)) if lang else ''
+        return "<pre><code{1}>{0}</code></pre>\n".format(html.escape(text, False), lang)
 
 
 class Markup(object):
