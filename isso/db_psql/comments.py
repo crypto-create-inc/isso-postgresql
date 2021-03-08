@@ -75,7 +75,7 @@ class Comments:
         )
 
         return dict(zip(Comments.fields, self.db.execute(
-            'SELECT *, MAX(c.id) FROM comments AS c INNER JOIN threads ON threads.uri = ?',
+            'SELECT * FROM comments AS c INNER JOIN threads ON threads.uri = ? ORDER BY c.id DESC limit 1',
             (uri, )).fetchone()))
 
     def activate(self, id):
