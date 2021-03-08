@@ -9,7 +9,6 @@
 .Python
 .sass-cache
 .vagrant
-pyvenv.cfg
 
 /bin
 /include
@@ -122,8 +121,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+.mypy_cache
 
 # VS Code project settings
 /.vscode
-
-.mypy_cache
