@@ -171,7 +171,8 @@ define(["app/dom", "app/utils", "app/config", "app/api", "app/jade", "app/i18n",
         };
 
         // run once to activate
-        refresh();
+        //refresh(); //crashes and breaks whole isso with .values being undefined in utils reduce later
+        setTimeout(refresh, 60*1000)
 
         if (config["avatar"]) {
             $("div.avatar > svg", el).replace(lib.identicons.generate(comment.hash, 4, 48));
