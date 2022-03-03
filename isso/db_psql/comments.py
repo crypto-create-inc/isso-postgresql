@@ -189,9 +189,11 @@ class Comments:
             sql.append(", comments.created")
 
         if limit:
-            sql.append('LIMIT ?,?')
-            sql_args.append(page * limit)
-            sql_args.append(limit)
+            pass #XXX TODO: below is not valid Postgres SQL syntax,
+            #fix by porting like in https://stackoverflow.com/questions/53296874/how-to-add-limit-clause-in-postgressql-query
+            #sql.append('LIMIT ?,?')
+            #sql_args.append(page * limit)
+            #sql_args.append(limit)
 
         rv = self.db.execute(sql, sql_args).fetchall()
         for item in rv:
