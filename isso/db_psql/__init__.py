@@ -44,21 +44,6 @@ class PSQL:
         else:
             self.migrate(to=PSQL.MAX_VERSION)
 
-        self.execute([
-            'CREATE or REPLACE FUNCTION remove_stale_threads_func() RETURNS trigger AS $remove_stale_threads_func$',
-            'BEGIN',
-            '   DELETE FROM threads WHERE id NOT IN (SELECT tid FROM comments);',
-            '   RETURN NULL;',
-            'END',
-            '$remove_stale_threads_func$ LANGUAGE plpgsql'
-        ])
-
-        self.execute([
-            'DROP TRIGGER IF EXISTS remove_stale_threads ON comments;',
-            'CREATE TRIGGER remove_stale_threads',
-            'AFTER DELETE ON comments',
-            'EXECUTE PROCEDURE remove_stale_threads_func()'])
-
     def execute(self, sql, args=()):
 
         if isinstance(sql, (list, tuple)):
@@ -78,6 +63,24 @@ class PSQL:
     def set_version(self, version):
         self.execute('CREATE TABLE IF NOT EXISTS versions (version INTEGER)')
         self.execute("INSERT INTO versions VALUES (%i)" % version)
+
+    def create_stale_threads_func_and_trigger(self):
+        #NOTE: these are not safe for multiple workers in parallel
+        #XXX TODO: we need to call these once per installation somehow
+        self.execute([
+            'CREATE or REPLACE FUNCTION remove_stale_threads_func() RETURNS trigger AS $remove_stale_threads_func$',
+            'BEGIN',
+            '   DELETE FROM threads WHERE id NOT IN (SELECT tid FROM comments);',
+            '   RETURN NULL;',
+            'END',
+            '$remove_stale_threads_func$ LANGUAGE plpgsql'
+        ])
+
+        self.execute([
+            'DROP TRIGGER IF EXISTS remove_stale_threads ON comments;',
+            'CREATE TRIGGER remove_stale_threads',
+            'AFTER DELETE ON comments',
+            'EXECUTE PROCEDURE remove_stale_threads_func()'])
 
     def migrate(self, to):
 
