@@ -220,8 +220,9 @@ def make_app(conf=None, threading=True, multiprocessing=False, uwsgi=False):
     if werkzeug.version.startswith("0.8"):
         wrapper.append(wsgi.LegacyWerkzeugMiddleware)
 
-    return reduce(lambda x, f: f(x), wrapper, isso)
-
+    return isso, reduce(lambda x, f: f(x), wrapper, isso)
+    #--antont NOTE: added app/isso return, so can inspect it to create proxy urls in parent fastapi app
+    #digging the appi out from the chain of middlewares was very hard
 
 def main():
 
@@ -291,4 +292,4 @@ def main():
         except OSError as ex:
             if ex.errno != errno.ENOENT:
                 raise
-        wsgi.SocketHTTPServer(sock, make_app(conf)).serve_forever()
+        wsgi.SocketHTTPServer(sock, make_app(conf))[1].serve_forever()
