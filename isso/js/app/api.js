@@ -73,7 +73,7 @@ define(["app/lib/promise", "app/globals"], function(Q, globals) {
             xhr.setRequestHeader("Content-Type", "application/json");
 
             if (bearer_token_cookie) {
-                xhr.setRequestHeader("Authorization", "Bearer " + cookies.get(bearer_token_cookie));
+                xhr.setRequestHeader("Authorization", "Bearer " + utils.cookie(bearer_token_cookie));
             }
 
             xhr.onreadystatechange = function () {
