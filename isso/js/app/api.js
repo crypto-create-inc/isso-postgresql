@@ -16,6 +16,13 @@ define(["app/lib/promise", "app/globals"], function(Q, globals) {
         }
     }
 
+    for (var i = 0; i < js.length; i++) {
+        if (js[i].hasAttribute("bearer-token-cookie")) {
+            bearer_token_cookie = js[i].getAttribute("bearer-token-cookie");
+            break;
+        }
+    }
+
     // if no async-script is embedded, use the last script tag of `js`
     if (! endpoint) {
         for (i = 0; i < js.length; i++) {
@@ -64,6 +71,10 @@ define(["app/lib/promise", "app/globals"], function(Q, globals) {
             xhr.open(method, url, true);
             xhr.withCredentials = true;
             xhr.setRequestHeader("Content-Type", "application/json");
+
+            if (bearer_token_cookie) {
+                xhr.setRequestHeader("Authorization", "Bearer " + cookies.get(bearer_token_cookie));
+            }
 
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
