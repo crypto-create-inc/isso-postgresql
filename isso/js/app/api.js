@@ -5,7 +5,7 @@ define(["app/lib/promise", "app/globals"], function(Q, globals) {
     var salt = "Eech7co8Ohloopo9Ol6baimi",
         location = function() { return window.location.pathname };
 
-    var script, endpoint,
+    var script, endpoint, bearer_token_cookie,
         js = document.getElementsByTagName("script");
 
     // prefer `data-isso="//host/api/endpoint"` if provided
