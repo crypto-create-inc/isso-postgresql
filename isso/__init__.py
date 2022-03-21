@@ -92,7 +92,7 @@ class ProxyFixCustom(ProxyFix):
 
 class Isso(object):
 
-    def __init__(self, conf):
+    def __init__(self, conf, usercustomizer):
 
         self.conf = conf
         db_type = conf.get('general', 'db-type')
@@ -125,7 +125,7 @@ class Isso(object):
 
         views.Info(self)
         views.Metrics(self)
-        comments.API(self, self.hasher)
+        comments.API(self, self.hasher, usercustomizer)
 
     def render(self, text):
         return self.markup.render(text)
@@ -169,7 +169,7 @@ class Isso(object):
         return self.wsgi_app(environ, start_response)
 
 
-def make_app(conf=None, threading=True, multiprocessing=False, uwsgi=False):
+def make_app(conf=None, threading=True, multiprocessing=False, uwsgi=False, usercustomizer=None):
 
     if not any((threading, multiprocessing, uwsgi)):
         raise RuntimeError("either set threading, multiprocessing or uwsgi")
@@ -184,7 +184,7 @@ def make_app(conf=None, threading=True, multiprocessing=False, uwsgi=False):
         class App(Isso, uWSGIMixin):
             pass
 
-    isso = App(conf)
+    isso = App(conf, usercustomizer)
 
     # check HTTP server connection
     for host in conf.getiter("general", "host"):

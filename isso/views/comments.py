@@ -119,10 +119,11 @@ class API(object):
         ('admin', ('GET', '/admin'))
     ]
 
-    def __init__(self, isso, hasher):
+    def __init__(self, isso, hasher, usercustomizer):
 
         self.isso = isso
         self.hash = hasher.uhash
+        self.usercustomizer = usercustomizer
         self.cache = isso.cache
         self.signal = isso.signal
 
@@ -474,7 +475,7 @@ class API(object):
     @api {delete} '/id/:id' delete
     @apiGroup Comment
     @apiDescription
-        Delte an existing comment. Deleting a comment is only possible for a short period of time after it was created and only if the requestor has a valid cookie for it. See the [isso server documentation](https://posativ.org/isso/docs/configuration/server) for details.
+        Delete an existing comment. Deleting a comment is only possible for a short period of time after it was created and only if the requestor has a valid cookie for it. See the [isso server documentation](https://posativ.org/isso/docs/configuration/server) for details.
 
     @apiParam {number} id
         Id of the comment to delete.
@@ -860,7 +861,10 @@ class API(object):
 
             item['hash'] = val
 
-            item = self._add_gravatar_image(item)
+            if self.usercustomizer is not None:
+                item = self.usercustomizer(item)
+            else:
+                item = self._add_gravatar_image(item)
 
             for key in set(item.keys()) - API.FIELDS:
                 item.pop(key)

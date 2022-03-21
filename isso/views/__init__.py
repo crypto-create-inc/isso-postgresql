@@ -34,6 +34,7 @@ class requires:
         def dec(cls, env, req, *args, **kwargs):
 
             if self.param not in req.args:
+                print("ISSO URL Requires:", self.param, req.args)
                 raise BadRequest("missing %s query" % self.param)
 
             try:

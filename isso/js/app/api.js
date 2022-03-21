@@ -1,4 +1,4 @@
-define(["app/lib/promise", "app/globals"], function(Q, globals) {
+define(["app/lib/promise", "app/globals", "app/utils"], function(Q, globals, utils) {
 
     "use strict";
 
