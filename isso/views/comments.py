@@ -378,6 +378,7 @@ class API(object):
     """
 
     def view(self, environ, request, id):
+        return "Isso VIEW"
 
         rv = self.comments.get(id)
         if rv is None:
@@ -488,23 +489,25 @@ class API(object):
     """
     @xhr
     def delete(self, environ, request, id, key=None):
-
-        try:
-            rv = self.isso.unsign(request.cookies.get(str(id), ""))
-        except (SignatureExpired, BadSignature):
-            raise Forbidden
-        else:
-            if rv[0] != id:
-                raise Forbidden
-
-            # verify checksum, mallory might skip cookie deletion when he deletes a comment
-            if rv[1] != sha1(self.comments.get(id)["text"]):
-                raise Forbidden
+        ccuser = request.args.get('ccuser', False)
 
         item = self.comments.get(id)
-
         if item is None:
             raise NotFound
+
+        author = item['author']
+        if author != ccuser:
+            try:
+                rv = self.isso.unsign(request.cookies.get(str(id), ""))
+            except (SignatureExpired, BadSignature):
+                raise Forbidden
+            else:
+                if rv[0] != id:
+                    raise Forbidden
+
+                # verify checksum, mallory might skip cookie deletion when he deletes a comment
+                if rv[1] != sha1(self.comments.get(id)["text"]):
+                    raise Forbidden
 
         self.cache.delete(
             'hash', (item['email'] or item['remote_addr']).encode('utf-8'))
