@@ -41,10 +41,10 @@ class Comments:
             '    text VARCHAR, author VARCHAR, email VARCHAR, website VARCHAR,',
             '    likes INTEGER DEFAULT 0, dislikes INTEGER DEFAULT 0, voters bytea NOT NULL,',
             '    notification INTEGER DEFAULT 0);'])
-        try:
-            self.db.execute(['ALTER TABLE comments ADD COLUMN notification INTEGER DEFAULT 0;'])
-        except Exception:
-            pass
+        #try:
+        #    self.db.execute(['ALTER TABLE comments ADD COLUMN notification INTEGER DEFAULT 0;'])
+        #except Exception:
+        #    pass
 
     def add(self, uri, c):
         """
