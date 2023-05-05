@@ -636,6 +636,7 @@ class API(object):
             raise Forbidden
 
         item = self.comments.get(id)
+        print("[MODERATE Item]", item, item['tid'])
         thread = self.threads.get(item['tid'])
         link = local("origin") + thread["uri"] + "#isso-%i" % item["id"]
 

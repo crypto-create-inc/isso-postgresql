@@ -28,3 +28,6 @@ class Threads(object):
     def new(self, uri, title):
         self.db.execute("INSERT INTO threads (uri, title) VALUES (?, ?)", (uri, title))
         return self[uri]
+    
+    def get(self, tid):
+        return Thread(*self.db.execute("SELECT * FROM threads WHERE id=?", (tid, )).fetchone())
