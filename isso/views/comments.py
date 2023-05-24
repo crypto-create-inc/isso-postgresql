@@ -160,8 +160,8 @@ class API(object):
             if not isinstance(comment.get(key), (str, type(None))):
                 return False, "%s must be a string or null" % key
 
-        if len(comment["text"].rstrip()) < 3:
-            return False, "text is too short (minimum length: 3)"
+        if len(comment["text"].rstrip()) < 2:
+            return False, "text is too short (minimum length: 2)"
 
         if len(comment["text"]) > 65535:
             return False, "text is too long (maximum length: 65535)"
@@ -456,7 +456,7 @@ class API(object):
 
         data = request.get_json()
 
-        if "text" not in data or data["text"] is None or len(data["text"]) < 3:
+        if "text" not in data or data["text"] is None or len(data["text"]) < 2:
             raise BadRequest("no text given")
 
         for key in set(data.keys()) - set(["text", "author", "website"]):
