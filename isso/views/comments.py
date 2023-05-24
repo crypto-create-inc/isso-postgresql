@@ -392,25 +392,25 @@ class API(object):
 
         return JSON(rv, 200)
     
-    def authenticate_edit_or_delete(self, request):
+    def authenticate_edit_or_delete(self, request, comment_id):
         ccuser = request.args.get('ccuser', False)
 
-        item = self.comments.get(id)
+        item = self.comments.get(comment_id)
         if item is None:
             raise NotFound
 
         author = item['author']
         if author != ccuser:
             try:
-                rv = self.isso.unsign(request.cookies.get(str(id), ""))
+                rv = self.isso.unsign(request.cookies.get(str(comment_id), ""))
             except (SignatureExpired, BadSignature):
                 raise Forbidden
             else:
-                if rv[0] != id:
+                if rv[0] != comment_id:
                     raise Forbidden
 
                 # verify checksum, mallory might skip cookie deletion when he deletes a comment
-                if rv[1] != sha1(self.comments.get(id)["text"]):
+                if rv[1] != sha1(self.comments.get(comment_id)["text"]):
                     raise Forbidden
                 
         return ccuser, item, author
@@ -452,7 +452,7 @@ class API(object):
     """
     @xhr
     def edit(self, environ, request, id):
-        ccuser, item, author = self.authenticate_edit_or_delete(request)
+        ccuser, item, author = self.authenticate_edit_or_delete(request, id)
 
         data = request.get_json()
 
@@ -502,7 +502,7 @@ class API(object):
 
     @xhr
     def delete(self, environ, request, id, key=None):
-        ccuser, item, author = self.authenticate_edit_or_delete(request)
+        ccuser, item, author = self.authenticate_edit_or_delete(request, id)
 
         self.cache.delete(
             'hash', (item['email'] or item['remote_addr']).encode('utf-8'))
